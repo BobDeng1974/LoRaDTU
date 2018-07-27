@@ -38,11 +38,11 @@ TaskHandle_t Task2Task_Handler;
 void task2_task(void *pvParameters);
 
 
-////监控串口的任务
-//#define USART_TASK_PRIO		4
-//#define USART_STK_SIZE 		128
-//TaskHandle_t USARTTask_Handler;
-//void USART_task(void *pvParameters);
+//应用任务
+#define APP_TASK_PRIO		4
+#define APP_STK_SIZE 		128
+TaskHandle_t APPTask_Handler;
+void APP_task(void *pvParameters);
 
 
 
@@ -84,7 +84,22 @@ void start_task(void *pvParameters)
                 (UBaseType_t    )TASK1_TASK_PRIO,        
                 (TaskHandle_t*  )&Task1Task_Handler);   
 
-								
+    //创建TASK2任务
+    xTaskCreate((TaskFunction_t )task2_task,             
+                (const char*    )"task2_task",           
+                (uint16_t       )TASK2_STK_SIZE,        
+                (void*          )NULL,                  
+                (UBaseType_t    )TASK2_TASK_PRIO,        
+                (TaskHandle_t*  )&Task2Task_Handler);               
+                
+	//创建app任务
+    xTaskCreate((TaskFunction_t )APP_task,             
+                (const char*    )"app_task",           
+                (uint16_t       )APP_STK_SIZE,        
+                (void*          )NULL,                  
+                (UBaseType_t    )APP_TASK_PRIO,        
+                (TaskHandle_t*  )&APPTask_Handler);   
+                
     vTaskDelete(StartTask_Handler); //删除开始任务
     taskEXIT_CRITICAL();            //退出临界区
 }
@@ -115,14 +130,13 @@ void task2_task(void *pvParameters)
 	}
 }
 
-//void USART_task(void *pvParameters){
-//    while(1){
-//        if( LoRaRXEvent ){
-//            if(using_LoRaRxBuffer1){
-//                
-//            }
-//        }
-//        vTaskDelay(10);
-//    }
-//}
+void APP_task(void *pvParameters){
+    while(1){
+        DataPacket* packet = receiver->receive();
+        if(packet != NULL){
+            Usart_SendArray(USART1,packet->dataBytes.data,packet->dataBytes.length);
+        }
+        vTaskDelay(1000);
+    }
+}
 
