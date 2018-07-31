@@ -10,7 +10,7 @@
 #define MAX_LEN 0x10
 
 
-#define DEBUG 1
+#define DEBUG 0
 
 
 typedef struct{

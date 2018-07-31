@@ -56,32 +56,12 @@ DataPacket* receive(void){
  */ 
 void _receive(void){
     if(LoRaRXEvent){
-        uint8_t* buffer = NULL;
-        
-        if(using_LoRaRxBuffer1){
-            buffer = LoRaRxBuffer2;
-        }else{
-            buffer = LoRaRxBuffer1;
-        }
-        
         memset(data,0,sizeof(data));                //清空临时缓冲区
-        //memcpy(data,buffer,receiveLength);          //拷贝数据到临时缓冲区
-        
- /***************************************************************************/
-        //不能复制转义字符
-        uint8_t ch,*pdata = data;
-        for(int8_t i = 0,j = 0;i < receiveLength;i++,j++){
-            ch = *(buffer+i+1);
-            if(*(buffer+i) == 0x1B &&(ch == 0x1B || ch == 0x04 || ch == 0x01)){
-                i++;
-            }
-            *(pdata + j) = *(buffer+i);
-        }
- /***************************************************************************/       
-            
-        memset(receiveBuffer,0,LoRaRxBufferSize*sizeof(uint8_t));//清空串口接收缓冲区
+        memcpy(data,LoRaRxBuffer,receiveLength);          //拷贝数据到临时缓冲区
+        memset(LoRaRxBuffer,0,LoRaRxBufferSize*sizeof(uint8_t));//清空串口接收缓冲区
         DataPacket* packet= malloc(sizeof(DataPacket));
         int8_t flag = unPacket(packet,data,receiveLength);
+        receiveLength = 0;
         if(flag == 0 || flag == -1){
             free(packet);
             receiveEvent = 0;

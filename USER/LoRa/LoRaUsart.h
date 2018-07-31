@@ -40,11 +40,10 @@
 
 #define  LoRaRxBufferSize 0x100
 
-extern uint8_t  LoRaRxBuffer1[ LoRaRxBufferSize ];
-extern uint8_t  LoRaRxBuffer2[ LoRaRxBufferSize ];
+extern uint8_t  LoRaRxBuffer[ LoRaRxBufferSize ];
 extern uint8_t  LoRaRXEvent ;
-extern uint8_t  using_LoRaRxBuffer1 ;
-extern uint8_t  receiveLength;
+extern uint16_t receiveLength;
 
 
+void LoRaUsartConfig(int baudRate);
 #endif /* LORAUSART_H */

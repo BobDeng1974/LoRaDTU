@@ -51,13 +51,14 @@ int main(void)
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);//设置系统中断优先级分组4	 
 	delay_init();	    				//延时函数初始化	 
 	USART_Config();
+    LoRaUsartConfig(115200);
 	LoRaInit();
     ECCInit();
     SenderInit();
     ReceiverInit();
-
-
-	
+    //Usart_SendArray(USART2,"helloworld",10);
+    printf("系统启动");
+	Usart_SendString(USART2,"LoRa初始化");
 	//创建开始任务
     xTaskCreate((TaskFunction_t )start_task,            //任务函数
                 (const char*    )"start_task",          //任务名称
@@ -135,6 +136,7 @@ void APP_task(void *pvParameters){
         DataPacket* packet = receiver->receive();
         if(packet != NULL){
             Usart_SendArray(USART1,packet->dataBytes.data,packet->dataBytes.length);
+            destroyPacket(packet);
         }
         vTaskDelay(1000);
     }

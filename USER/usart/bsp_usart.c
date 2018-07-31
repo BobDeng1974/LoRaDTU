@@ -173,8 +173,7 @@ int fgetc(FILE *f)
 
 
 
-    _Bool flag = 0;
-    _Bool startFlag = 0;
+
 // 串口中断服务函数
 void DEBUG_USART_IRQHandler(void)
 {
@@ -182,42 +181,7 @@ void DEBUG_USART_IRQHandler(void)
 	if(USART_GetITStatus(DEBUG_USARTx,USART_IT_RXNE)!=RESET)
 	{		
 		ch = USART_ReceiveData(DEBUG_USARTx);
-
-        if(flag == 0){
-            if(startFlag == 1 && ch != 0x04 && ch != 0x1B){
-                //如果正在接收并且当前字符不是帧结束符也不是转义符，那么直接接收
-                *preceiveBuffer++ = ch;
-                goto out;
-            }
-            if(startFlag == 1 && ch == 0x04 ){
-                //0x04前面不是0x1B，并且当前处于接收模式
-                //判断为帧结束信号
-                //产生一次更新信号并将当前的开始信号复位
-                *preceiveBuffer++ = ch;
-                receiveEvent = 1;
-                startFlag = 0;
-            }else if(receiveEvent == 0 && ch == 0x01 ){
-                //如果之前接收到的数据已取出并且接收到帧开始符
-                //就将开始信号置位
-                *preceiveBuffer++ = ch;
-                startFlag = 1;
-            }else if(startFlag == 1 && ch == 0x1B){
-                //如果前面没有转义符并且接收到了0x1B并且当前处于开始接收状态
-                //那么，这个0x1B是转义符
-                //需要丢弃当前这个转义符并将转义flag置位
-                flag = 1;
-            }
-            
-            goto out;
-        }
-        if(flag == 1 && startFlag == 1){
-            //如果处于接收模式并且转义信号有效
-            //那么应该收下当前这个数据
-            *preceiveBuffer++ = ch;
-            flag = 0;
-        }
-        
-	}
-    out:;
+        USART_SendData(DEBUG_USARTx,ch);
+    }
 }
 

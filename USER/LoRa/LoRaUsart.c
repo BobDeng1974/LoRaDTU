@@ -1,27 +1,24 @@
 #include "LoRaUsart.h"
 #include "String.h"
 #include "stdlib.h"
-
+#include "bsp_usart.h"
 //串口缓冲区以及标志位
-uint8_t  LoRaRxBuffer1[ LoRaRxBufferSize ] = { 0 };
-uint8_t  LoRaRxBuffer2[ LoRaRxBufferSize ] = { 0 };
+uint8_t  LoRaRxBuffer[ LoRaRxBufferSize ] = { 0 };
 uint8_t  LoRaRXEvent = 0;
-uint8_t  using_LoRaRxBuffer1 = 1;
-uint8_t  receiveLength = 0;
-static void NVIC_Config(void);
+uint16_t  receiveLength  = 0;
+
 
 /**
  *    配置 LoRa 的串口
  *    1.配置串口引脚
- *    2.配置串口DMA
+ *    
  *    3.配置向量表初始化
  */
 void LoRaUsartConfig(int baudRate){
     GPIO_InitTypeDef GPIO_InitStructure;
 	USART_InitTypeDef USART_InitStructure;
-    DMA_InitTypeDef DMA_InitStructure;
-    
-    //DMA DMA_InitStructure;
+    NVIC_InitTypeDef NVIC_InitStructure;
+
     // 打开串口GPIO的时钟
 	LORA_USART_GPIO_APBxClkCmd(LORA_USART_GPIO_CLK, ENABLE);
 	
@@ -37,7 +34,7 @@ void LoRaUsartConfig(int baudRate){
     // 将USART Rx的GPIO配置为浮空输入模式
 	GPIO_InitStructure.GPIO_Pin = LORA_USART_RX_GPIO_PIN;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-	GPIO_Init(LORA_USART_TX_GPIO_PORT, &GPIO_InitStructure);
+	GPIO_Init(LORA_USART_RX_GPIO_PORT, &GPIO_InitStructure);
     
     // 配置串口的工作参数
 	// 配置波特率
@@ -53,96 +50,77 @@ void LoRaUsartConfig(int baudRate){
 	USART_HardwareFlowControl_None;
 	// 配置工作模式，收发一起
 	USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
-	// 完成串口的初始化配置
+    
+    // 完成串口的初始化配置
 	USART_Init(LORA_USARTx, &USART_InitStructure);
-    USART_ITConfig(LORA_USARTx,USART_IT_IDLE,ENABLE);
     
-    
-    //设置劳拉的DMA接收
-    DMA_Cmd(LORA_DMA_RX_CHANNEL,DISABLE);
-    LORA_DMA_APBxClkCmd(LORA_DMA_CLK,ENABLE);
-    
-    DMA_InitStructure.DMA_BufferSize = LoRaRxBufferSize;
-    DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
-    DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;
-    DMA_InitStructure.DMA_MemoryBaseAddr = (u32)LoRaRxBuffer1;
-    DMA_InitStructure.DMA_MemoryDataSize = DMA_PeripheralDataSize_Byte;
-    DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
-    DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
-    DMA_InitStructure.DMA_PeripheralBaseAddr = (u32)(&LORA_USARTx->DR);
-    DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
-    DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-    DMA_InitStructure.DMA_Priority = DMA_Priority_High;
-    
-    DMA_Init(LORA_DMA_RX_CHANNEL,&DMA_InitStructure);
-    NVIC_Config();
-    DMA_Cmd(LORA_DMA_RX_CHANNEL,ENABLE);//打开接收DMA
-}
 
 
-static void NVIC_Config(void){
-    NVIC_InitTypeDef NVIC_InitStructure;
-
-    //usart idle
+    //usart  rxne
     NVIC_InitStructure.NVIC_IRQChannel = LORA_USART_IRQ;
     NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
     NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
     NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
     NVIC_Init(&NVIC_InitStructure);
     
-    //dma rx
-    DMA_ITConfig(LORA_DMA_RX_CHANNEL,DMA_IT_TC,ENABLE);
-    NVIC_InitStructure.NVIC_IRQChannel = LORA_DMA_RX_IRQ;
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
-    NVIC_Init(&NVIC_InitStructure);
-    
 
+    
+    USART_ITConfig(LORA_USARTx,USART_IT_RXNE,ENABLE);
+    
+    USART_Cmd(LORA_USARTx, ENABLE);
     
 }
 
 
-void LORA_DMA_RX_IRQHandler(){
-    if( DMA_GetITStatus(LORA_DMA_RX_TC) ){
-        DMA_Cmd(LORA_DMA_RX_CHANNEL,DISABLE);//关闭接收DMA
-        if(using_LoRaRxBuffer1 == 1){
-            LORA_DMA_RX_CHANNEL->CMAR = (u32)LoRaRxBuffer2;
-            using_LoRaRxBuffer1 = 0;
-        }else{
-            LORA_DMA_RX_CHANNEL->CMAR = (u32)LoRaRxBuffer1;
-            using_LoRaRxBuffer1 = 1;
-        }
-        LoRaRXEvent = 1;
-        receiveLength = LoRaRxBufferSize - LORA_DMA_RX_CHANNEL->CNDTR;
-        LORA_DMA_RX_CHANNEL->CNDTR = LoRaRxBufferSize;
-        DMA_ClearITPendingBit(LORA_DMA_RX_TC);
-        DMA_Cmd(LORA_DMA_RX_CHANNEL,ENABLE);//打开接收DMA
-    }
 
-}
 
+uint8_t ch;
+_Bool flag = 0;
+_Bool startFlag = 0;
 void LORA_USART_IRQHandler(){
-    if( USART_GetITStatus(LORA_USARTx,USART_IT_IDLE) ){
-         DMA_Cmd(LORA_DMA_RX_CHANNEL,DISABLE);//关闭接收DMA
-        if(using_LoRaRxBuffer1 == 1){
-            LORA_DMA_RX_CHANNEL->CMAR = (u32)LoRaRxBuffer2;
-            using_LoRaRxBuffer1 = 0;
-        }else{
-            LORA_DMA_RX_CHANNEL->CMAR = (u32)LoRaRxBuffer1;
-            using_LoRaRxBuffer1 = 1;
+
+	if(USART_GetITStatus(LORA_USARTx,USART_IT_RXNE)!=RESET)
+	{		
+		ch = USART_ReceiveData(LORA_USARTx);
+
+        if(flag == 0){
+            if(startFlag == 1 && ch != 0x04 && ch != 0x1B){
+                //如果正在接收并且当前字符不是帧结束符也不是转义符，那么直接接收
+                LoRaRxBuffer[receiveLength++] = ch;
+                return;
+            }
+            if(startFlag == 1 && ch == 0x04 ){
+                //0x04前面不是0x1B，并且当前处于接收模式
+                //判断为帧结束信号
+                //产生一次更新信号并将当前的开始信号复位
+                LoRaRxBuffer[receiveLength++] = ch;
+                LoRaRXEvent = 1;
+                startFlag = 0;
+            }else if(LoRaRXEvent == 0 && ch == 0x01 ){
+                //如果之前接收到的数据已取出并且接收到帧开始符
+                //就将开始信号置位
+                LoRaRxBuffer[receiveLength++] = ch;
+                startFlag = 1;
+            }else if(startFlag == 1 && ch == 0x1B){
+                //如果前面没有转义符并且接收到了0x1B并且当前处于开始接收状态
+                //那么，这个0x1B是转义符
+                //需要丢弃当前这个转义符并将转义flag置位
+                flag = 1;
+            }
+            return;
+            
         }
-        LoRaRXEvent = 1;
-        receiveLength = LoRaRxBufferSize - LORA_DMA_RX_CHANNEL->CNDTR;
-        LORA_DMA_RX_CHANNEL->CNDTR = LoRaRxBufferSize;
-        DMA_ClearITPendingBit(LORA_DMA_RX_TC);
-        DMA_Cmd(LORA_DMA_RX_CHANNEL,ENABLE);//打开接收DMA
-    }
+        if(flag == 1 && startFlag == 1){
+            //如果处于接收模式并且转义信号有效
+            //那么应该收下当前这个数据
+            LoRaRxBuffer[receiveLength++] = ch;
+            flag = 0;
+        }
+        
+	}
 }
 
-//void LORA_DMA_TX_IRQHandler(){
-//    if(DMA_GetITStatus(LORA_DMA_TX_TC)){
-//        DMA_ClearITPendingBit(LORA_DMA_TX_TC);
-//    }
-//}
+
 
 
 
