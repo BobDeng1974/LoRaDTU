@@ -17,9 +17,9 @@ void LoRaInit(void){
     localhost.Address_H = 0x00;
     localhost.Address_L = 0x02;
     localhost.Channel = 21;
-    defaultHost.Address_H = 0x00;
+    defaultHost.Address_H = 0x01;
     defaultHost.Address_L = 0x01;
-    defaultHost.Channel = 20;
+    defaultHost.Channel = 0x01;
 }
 
 
@@ -107,14 +107,8 @@ _Bool LoRaSendData(DataPacket* packet){
     
     //·¢ËÍCRCÂë
     LoRaSendByte(packet->crc);
-    
-    
-    
-    
     //·¢ËÍÖ¡½áÊø·û
     Usart_SendByte( LoRaUSART, 0x04);
-    
-    
     return 1;
 }
 

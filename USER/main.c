@@ -9,6 +9,9 @@
 #include "ECC.h"
 #include "Receiver.h"
 #include "LinkedList.h"
+#include "bh1750.h"
+#include "bsp_dht11.h"
+#include "adc.h"
 
 //任务优先级
 #define START_TASK_PRIO		1
@@ -29,7 +32,7 @@ TaskHandle_t Task1Task_Handler;
 void task1_task(void *pvParameters);
 
 //任务优先级
-#define TASK2_TASK_PRIO		3
+#define TASK2_TASK_PRIO		10
 //任务堆栈大小	
 #define TASK2_STK_SIZE 		1024  
 //任务句柄
@@ -39,7 +42,7 @@ void task2_task(void *pvParameters);
 
 
 //应用任务
-#define APP_TASK_PRIO		4
+#define APP_TASK_PRIO		0
 #define APP_STK_SIZE 		128
 TaskHandle_t APPTask_Handler;
 void APP_task(void *pvParameters);
@@ -114,7 +117,7 @@ void task1_task(void *pvParameters)
 	while(1)
 	{
 		_send();
-        vTaskDelay(1000);
+        vTaskDelay(10);
 	}
 }
 
@@ -132,12 +135,34 @@ void task2_task(void *pvParameters)
 }
 
 void APP_task(void *pvParameters){
+    create_adc();
+    create_bh1750();
+    create_dht11();
     while(1){
-        DataPacket* packet = receiver->receive();
-        if(packet != NULL){
-            Usart_SendArray(USART1,packet->dataBytes.data,packet->dataBytes.length);
-            destroyPacket(packet);
-        }
+//        DataPacket* packet = receiver->receive();
+//        if(packet != NULL){
+//            Usart_SendArray(USART1,packet->dataBytes.data,packet->dataBytes.length);
+//            destroyPacket(packet);  
+//        }
+        
+        
+        
+        if(device_dht11.Device_update(&device_dht11) == SUCCESS &&device_dht11.update_event == true){
+//            DHT11_Data_TypeDef data = *((DHT11_Data_TypeDef*)device_dht11.pvalue);
+            
+			printf("温度数据：%d\n",DHT11.temp_int);
+            printf("湿度数据：%d%%\n",DHT11.humi_int);
+			device_dht11.update_event = false;		
+		}
+        if(device_adc_pc4.Device_update(&device_adc_pc4) == SUCCESS &&device_adc_pc4.update_event == true){
+			
+			printf("土壤湿度：%d%%\n",ADC_PC4);
+			device_adc_pc4.update_event = false;		
+		}
+        
+        
+        
+        
         vTaskDelay(1000);
     }
 }
