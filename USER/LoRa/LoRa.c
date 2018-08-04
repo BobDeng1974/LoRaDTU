@@ -2,7 +2,7 @@
 #include "String.h"
 #include "stdlib.h"
 #include "LoRa_usart.h"
-
+#include "RoutingTable.h"
 
  void LoRaSendByte(uint8_t data);
  void LoRaSendBytes(uint8_t length,uint8_t* p);
@@ -16,10 +16,16 @@ void LoRaInit(void){
     
     localhost.Address_H = 0x00;
     localhost.Address_L = 0x02;
-    localhost.Channel = 21;
+    localhost.Channel = 0x15;
     defaultHost.Address_H = 0x01;
     defaultHost.Address_L = 0x01;
-    defaultHost.Channel = 0x01;
+    defaultHost.Channel = 0x00;
+    
+    #ifdef ROOTING_MODE
+    
+    RoutingTableInit();
+    
+    #endif
 }
 
 
@@ -36,6 +42,7 @@ void LoRaAddressConfig(uint16_t address,uint8_t channel){
     Usart_SendByte( LoRaUSART, (0xff00&address)>>8);
     Usart_SendByte( LoRaUSART, (0xff&address));
     Usart_SendByte( LoRaUSART, channel);
+
 }
 
 
@@ -50,6 +57,8 @@ static void _LoRaAddressConfig(uint8_t address_H,uint8_t address_L,uint8_t chann
     Usart_SendByte( LoRaUSART, address_H);
     Usart_SendByte( LoRaUSART, address_L);
     Usart_SendByte( LoRaUSART, channel);
+    
+
 }
 
 
@@ -66,8 +75,10 @@ static void _LoRaAddressConfig(uint8_t address_H,uint8_t address_L,uint8_t chann
         case 0x04:
         case 0x1B:
             Usart_SendByte( LoRaUSART, 0x1B);
+
         default:
             Usart_SendByte( LoRaUSART, *p);
+
             break;
         }
         p++;
@@ -89,8 +100,30 @@ _Bool LoRaSendData(DataPacket* packet){
     }
     packet->crc = calculateCRC(packet);
     //发送数据之前先发送下一跳地址、信道
-    //这里应该去路由表寻找
-    _LoRaAddressConfig(defaultHost.Address_H,defaultHost.Address_L,defaultHost.Channel);
+    #ifndef ROUTING_MODE        //没有定义 ROOTING_MODE 证明是终端设备
+    if(packet->destination.Address_H == localhost.Address_H && packet->destination.Address_L == localhost.Address_L){
+        //如果是本集群内，直接转发
+        _LoRaAddressConfig(packet->destination.Address_H,packet->destination.Address_L,packet->destination.Channel);
+    }else{
+        //不是本集群内部的，发送给路由
+        _LoRaAddressConfig(localhost.Address_H,localhost.Address_L,0x00);
+    }
+    #else
+    //路由模式下每次转发都要寻找下一跳地址
+    if(packet->destination.Address_H == localhost.Address_H && packet->destination.Address_L == localhost.Address_L){
+        _LoRaAddressConfig(packet->destination.Address_H,packet->destination.Address_L,packet->destination.Channel);
+    }else{
+        static uint16_t nextjmpaddress;
+        nextjmpaddress = routing.select((packet->destination.Address_H << 8) + packet->destination.Address_L);
+        _LoRaAddressConfig((nextjmpaddress&0xff00)>>8,(nextjmpaddress&0xff),0x00);
+    }
+    
+    #endif /* ROUTING_MODE */
+    
+    
+    
+    
+    
     //发送帧起始符
     Usart_SendByte( LoRaUSART, 0x01);
     LoRaSendByte(packet->count);
@@ -125,8 +158,11 @@ _Bool LoRaSendData(DataPacket* packet){
         case 0x04:
         case 0x1B:
             Usart_SendByte( LoRaUSART, 0x1B);
+
+        
         default:
             Usart_SendByte( LoRaUSART, data);
+
             break;
     }
 }
