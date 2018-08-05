@@ -70,7 +70,7 @@ void SenderInit(void){
  */ 
 void send(DataPacket* packet){
     if(sendList->size >= MAX_LEN){
-        sendList->headRemove(sendList);
+        destroyPacket(sendList->headRemove(sendList));
     }
     sendList->tailInsert(sendList,packet);
 }
@@ -83,7 +83,7 @@ void send(DataPacket* packet){
  *
  */ 
 void _send(void){
-    if(sendList->size != 0){
+    while(sendList->size != 0){
         DataPacket* packet = sendList->headRemove(sendList);
         if(LoRaSendData(packet)){
             #if DEBUG
@@ -110,16 +110,11 @@ void _send(void){
  *
  */ 
 void sendAck(LoRaAddress address,uint8_t ack){
-    //发送之前先去找到目的地址的下一条地址
-    //因为没写好路由表，所以默认下一跳地址是默认地址
-    //findNextJmp(address);
-    LoRaAddress nextJmp = defaultHost;
     DataPacket* packet = malloc(sizeof(DataPacket));
     packet->dataBytes.data = malloc(sizeof(uint8_t)*1);
     *(packet->dataBytes.data) = ack;
     packet->dataBytes.length = 1;
     packet->destination = address;
-    packet->nextJmp = nextJmp;
     packet->source = localhost;
     packet->crc = calculateCRC(packet);
     packet->count = 0x10;

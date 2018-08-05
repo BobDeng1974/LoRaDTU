@@ -181,7 +181,7 @@ void DEBUG_USART_IRQHandler(void)
 	if(USART_GetITStatus(DEBUG_USARTx,USART_IT_RXNE)!=RESET)
 	{		
 		ch = USART_ReceiveData(DEBUG_USARTx);
-        USART_SendData(DEBUG_USARTx,ch);
+        USART_SendData(USART2,ch);
     }
 }
 

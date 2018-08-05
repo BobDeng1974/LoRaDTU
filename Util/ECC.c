@@ -27,8 +27,8 @@ void ECCInit(void){
  *
  */ 
 void check(DataPacket* packet){
-    if(ECCList->size >= ECC_MAX_LEN){
-        ECCList->headRemove(ECCList);
+    if(ECCList->size >= ECC_MAX_LEN){        
+        destroyPacket(ECCList->headRemove(ECCList));
     }
     ECCList->tailInsert(ECCList,packet);
 }

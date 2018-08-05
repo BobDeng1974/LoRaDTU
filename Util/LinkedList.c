@@ -185,6 +185,7 @@ Node* search(LinkedList* list,void* nodeData){
         if(pTempNode->nodeData == nodeData){
             return pTempNode;
         }
+        pTempNode = pTempNode->next;
     }
     return NULL;
 }

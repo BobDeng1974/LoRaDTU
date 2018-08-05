@@ -69,7 +69,7 @@ void _receive(void){
         }
         
         if(recvList->size >= RECV_MAX_LEN){
-            recvList->headRemove(recvList);
+            destroyPacket(recvList->headRemove(recvList));
         }
         
         
