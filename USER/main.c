@@ -189,7 +189,7 @@ void APP_task(void *pvParameters){
             packet->dataBytes.data[6] = DHT11.temp_int%10+0x30;
             Sender->send(packet);
             
-			printf("温度数据：%d\n",DHT11.temp_int);
+			//printf("温度数据：%d\n",DHT11.temp_int);
             
             
             
@@ -204,7 +204,7 @@ void APP_task(void *pvParameters){
             packet1->dataBytes.data[6] = DHT11.humi_int%10+0x30;
             Sender->send(packet1);
 
-            printf("湿度数据：%d%%\n",DHT11.humi_int);
+           // printf("湿度数据：%d%%\n",DHT11.humi_int);
 			device_dht11.update_event = false;		
 		}
         if(device_adc_pc4.Device_update(&device_adc_pc4) == SUCCESS && device_adc_pc4.update_event){
@@ -232,7 +232,7 @@ void APP_task(void *pvParameters){
             packet1->dataBytes.data[6] = ADC_PC4%10+0x30;
             Sender->send(packet1);
             
-			printf("土壤湿度：%d%%\n",ADC_PC4);
+			//printf("土壤湿度：%d%%\n",ADC_PC4);
 			device_adc_pc4.update_event = false;		
 		}
 
@@ -281,7 +281,11 @@ void APP1_task(void *pvParameters){
             
             destroyPacket(packet);
         }
-       
+        if(packet!= NULL && packet->dataBytes.length == 7){
+            
+            printf("接收到来自地址为：%2x %2x %2x 的设备发送的数据:%s\r\n",packet->source.Address_H,packet->source.Address_L,packet->source.Channel,packet->dataBytes.data);
+            destroyPacket(packet);
+        }
         vTaskDelay(1000);
     }
 }
