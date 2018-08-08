@@ -18,5 +18,6 @@ _Bool LoRaSendData(DataPacket* packet);
 
 void LoRaInit(void);
 uint8_t calculateCRC(DataPacket* packet);
+_Bool _LoRaSendData(DataPacket* packet);
 #endif /* __LORA_H__ */
 

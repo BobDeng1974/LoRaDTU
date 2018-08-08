@@ -136,10 +136,22 @@ void start_task(void *pvParameters)
 //send任务函数
 void send_task(void *pvParameters)
 {
-
+    DataPacket* packet = NULL;
+    Node* node = NULL;
 	while(1)
 	{
 		_send();
+        //每10ms遍历一次ECC
+        ECC->ECCList->iterator.reset(ECC->ECCList);
+        while(ECC->ECCList->iterator.hasNext(ECC->ECCList)){
+            node = ECC->ECCList->iterator.next(ECC->ECCList);
+            packet = node->nodeData;
+            if(--packet->time <= 0){
+                ECC->ECCList->deleteByNode(ECC->ECCList,node);
+                printf("正文内容为%s的数据包未接收到确认，正在重新发送\r\n",packet->dataBytes.data);
+                _LoRaSendData(packet);
+            }
+        }
         vTaskDelay(10);
 	}
 }
@@ -153,6 +165,7 @@ void recv_task(void *pvParameters)
 	while(1)
 	{
         _receive();
+        
         vTaskDelay(10);                           
 	}
 }
@@ -165,11 +178,7 @@ void APP_task(void *pvParameters){
     WIFIaddress.Address_H = 0x01;
     WIFIaddress.Address_L = 0x01;
     WIFIaddress.Channel = 0x01;
-    
-    LoRaAddress CenterAddress;
-    CenterAddress.Address_H = 0x01;
-    CenterAddress.Address_L = 0x01;
-    CenterAddress.Channel = 0x02;   
+      
     
     
     while(1){
@@ -208,18 +217,7 @@ void APP_task(void *pvParameters){
 			device_dht11.update_event = false;		
 		}
         if(device_adc_pc4.Device_update(&device_adc_pc4) == SUCCESS && device_adc_pc4.update_event){
-            DataPacket* packet = malloc(sizeof(DataPacket));
-            packet->dataBytes.length = 7;
-            packet->dataBytes.data = malloc(sizeof(uint8_t)*7);
-            packet->source = localhost;
-            packet->destination = CenterAddress;
-            packet->count = 0x10;
-            strcpy((char*)packet->dataBytes.data,"Eumi:");
-            packet->dataBytes.data[5] = ADC_PC4/10+0x30;
-            packet->dataBytes.data[6] = ADC_PC4%10+0x30;
-            Sender->send(packet);
-            
-            
+
             
             DataPacket* packet1 = malloc(sizeof(DataPacket));
             packet1->dataBytes.length = 7;

@@ -102,7 +102,7 @@
 
 //#define  DEBUG_USART_IRQ                UART5_IRQn
 //#define  DEBUG_USART_IRQHandler         UART5_IRQHandler
-extern uint8_t receiveBuffer[2048];
+extern uint8_t receiveBuffer[256];
 extern uint8_t* preceiveBuffer;
 extern uint8_t receiveEvent;
 

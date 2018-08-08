@@ -107,8 +107,24 @@ void _receive(void){
         }
         LoRaRXEvent = 0;
     }
-    
-    
+    if(receiveEvent){
+        uint8_t len = preceiveBuffer - receiveBuffer;
+        memset(data,0,sizeof(data));                //清空临时缓冲区
+        memcpy(data,receiveBuffer,len);          //拷贝数据到临时缓冲区
+        memset(receiveBuffer,0,len*sizeof(uint8_t));//清空串口接收缓冲区
+        preceiveBuffer = receiveBuffer;
+        DataPacket* packet= malloc(sizeof(DataPacket));
+        int8_t flag = unPacket(packet,data,len);
+        len = 0;
+        if(flag == 0 || flag == -1){
+            free(packet);
+            receiveEvent = 0;
+            return ;
+        }
+        packet->source = localhost;
+        Sender->send(packet);
+        receiveEvent = 0;
+    }    
 }
 
 

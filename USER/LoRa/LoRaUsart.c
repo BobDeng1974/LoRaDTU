@@ -74,11 +74,12 @@ void LoRaUsartConfig(int baudRate){
 
 
 
-uint8_t ch;
-_Bool flag = 0;
-_Bool startFlag = 0;
-void LORA_USART_IRQHandler(){
 
+
+void LORA_USART_IRQHandler(){
+static _Bool flag = 0;
+static _Bool startFlag = 0;
+    uint8_t ch;
 	if(USART_GetITStatus(LORA_USARTx,USART_IT_RXNE)!=RESET)
 	{		
 		ch = USART_ReceiveData(LORA_USARTx);

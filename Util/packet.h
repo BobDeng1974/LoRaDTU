@@ -22,7 +22,7 @@ typedef struct{
     LoRaAddress destination;
     LoRaAddress nextJmp;
     uint8_t count;              //ÌøÊıµ¹Êı ·ÀÖ¹ËÀÑ­»·hops
-    
+    int16_t time;
 }DataPacket;
 
 int8_t unPacket(DataPacket* dataPacket,uint8_t* pdata,uint8_t dataSize);

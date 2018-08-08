@@ -146,6 +146,48 @@ _Bool LoRaSendData(DataPacket* packet){
 }
 
 
+
+
+/**
+ *  直接发送数据
+ *  传一个 DataPacket* 过来源地址、源信道、目的地址、目的信道
+ *  规定上层传下来的数据中前六位要写好
+ *
+ */ 
+_Bool _LoRaSendData(DataPacket* packet){
+    if (packet == NULL || packet->dataBytes.data ==NULL || packet->dataBytes.length ==0){
+        return 0;
+    }
+    packet->crc = calculateCRC(packet);
+    _LoRaAddressConfig(packet->destination.Address_H,packet->destination.Address_L,packet->destination.Channel);
+    
+    //发送帧起始符
+    Usart_SendByte( LoRaUSART, 0x01);
+    LoRaSendByte(0x10);
+    //发送源地址、源信道、目的地址、目的信道
+    LoRaSendByte(packet->source.Address_H);
+    LoRaSendByte(packet->source.Address_L);
+    LoRaSendByte(packet->source.Channel);
+    LoRaSendByte(packet->destination.Address_H);
+    LoRaSendByte(packet->destination.Address_L);
+    LoRaSendByte(packet->destination.Channel);
+    
+    //发送真正要交付到目的主机的数据
+    LoRaSendBytes(packet->dataBytes.length,packet->dataBytes.data);
+    
+    //发送CRC码
+    LoRaSendByte(packet->crc);
+    //发送帧结束符
+    Usart_SendByte( LoRaUSART, 0x04);
+    
+    destroyPacket(packet);
+    
+    return 1;
+}
+
+
+
+
 /**
  *  向 LoRa 发送一个字节
  *  @param data 一字节数据
