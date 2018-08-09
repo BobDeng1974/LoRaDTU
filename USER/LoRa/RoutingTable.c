@@ -1,7 +1,7 @@
 #include "RoutingTable.h"
 #include "LoRa.h"
 #include "stdlib.h"
-#ifdef ROOTING_MODE
+#ifdef ROUTING_MODE
 
 
 LinkedList* routingTable;
@@ -43,7 +43,7 @@ void add(uint16_t DestinationAddress,uint8_t hops,uint16_t nextJmpAddress){
     }
     temp->hops = hops;
     temp->nextJmpAddress = nextJmpAddress;
-    
+    routingTable->headInsert(routingTable,temp);
 }
 
 uint16_t select(uint16_t DestinationAddress){
@@ -108,7 +108,7 @@ static routMessage* search(LinkedList* list,routMessage* rout){
 
 
 
-#endif /* ROOTING_MODE */
+#endif /* ROUTING_MODE */
 
 
 

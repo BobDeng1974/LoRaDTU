@@ -21,11 +21,13 @@ void LoRaInit(void){
     defaultHost.Address_L = 0x03;
     defaultHost.Channel = 0x00;
     
-    #ifdef ROOTING_MODE
-    
+    #ifdef ROUTING_MODE
     RoutingTableInit();
+    if(localhost.Address_H ==0x02 && localhost.Address_L == 0x02){
+        routing.add(771,1,771);
+    }
     
-    #endif
+    #endif /* ROUTING_MODE */
 }
 
 
@@ -111,6 +113,7 @@ _Bool LoRaSendData(DataPacket* packet){
     #else
     //路由模式下每次转发都要寻找下一跳地址
     if(packet->destination.Address_H == localhost.Address_H && packet->destination.Address_L == localhost.Address_L){
+        //如果是本集群内就直接发送
         _LoRaAddressConfig(packet->destination.Address_H,packet->destination.Address_L,packet->destination.Channel);
     }else{
         static uint16_t nextjmpaddress;

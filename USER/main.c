@@ -9,10 +9,9 @@
 #include "ECC.h"
 #include "Receiver.h"
 #include "LinkedList.h"
-#include "bh1750.h"
 #include "bsp_dht11.h"
 #include "adc.h"
-
+#include "RoutingTable.h"
 //任务优先级
 #define START_TASK_PRIO		1
 //任务堆栈大小	
@@ -70,7 +69,9 @@ int main(void)
     create_adc();
     //create_bh1750();
     create_dht11();
-    //Usart_SendArray(USART2,"helloworld",10);
+    
+
+    
     printf("系统启动");
 	//创建开始任务
     xTaskCreate((TaskFunction_t )start_task,            //任务函数
@@ -108,13 +109,13 @@ void start_task(void *pvParameters)
     
 
 
-//	//创建app任务
-//    xTaskCreate((TaskFunction_t )APP_task,             
-//                (const char*    )"app_task",           
-//                (uint16_t       )APP_STK_SIZE,        
-//                (void*          )NULL,                  
-//                (UBaseType_t    )APP_TASK_PRIO,        
-//                (TaskHandle_t*  )&APPTask_Handler);
+	//创建app任务
+    xTaskCreate((TaskFunction_t )APP_task,             
+                (const char*    )"app_task",           
+                (uint16_t       )APP_STK_SIZE,        
+                (void*          )NULL,                  
+                (UBaseType_t    )APP_TASK_PRIO,        
+                (TaskHandle_t*  )&APPTask_Handler);
     
      //创建app1任务
     xTaskCreate((TaskFunction_t )APP1_task,             
@@ -145,9 +146,6 @@ void send_task(void *pvParameters)
             packet = node->nodeData;
             if(--packet->time <= 0){
                 ECC->ECCList->deleteByNode(ECC->ECCList,node);
-                Usart_SendString(DEBUG_USARTx,"正文内容为【");
-                Usart_SendArray(DEBUG_USARTx,packet->dataBytes.data,packet->dataBytes.length);
-                Usart_SendString(DEBUG_USARTx,"】未接收到确认包，正在重新发送\r\n");
                 _LoRaSendData(packet);
             }
         }
@@ -174,9 +172,9 @@ void APP_task(void *pvParameters){
     
     
     LoRaAddress WIFIaddress;
-    WIFIaddress.Address_H = 0x01;
-    WIFIaddress.Address_L = 0x01;
-    WIFIaddress.Channel = 0x01;
+    WIFIaddress.Address_H = 0x03;
+    WIFIaddress.Address_L = 0x03;
+    WIFIaddress.Channel = 0x03;
       
     
     
@@ -196,11 +194,7 @@ void APP_task(void *pvParameters){
             packet->dataBytes.data[5] = DHT11.temp_int/10+0x30;
             packet->dataBytes.data[6] = DHT11.temp_int%10+0x30;
             Sender->send(packet);
-            
-			//printf("温度数据：%d\n",DHT11.temp_int);
-            
-            
-            
+
             DataPacket* packet1 = malloc(sizeof(DataPacket));
             packet1->dataBytes.length = 7;
             packet1->dataBytes.data = malloc(sizeof(uint8_t)*7);
@@ -212,7 +206,6 @@ void APP_task(void *pvParameters){
             packet1->dataBytes.data[6] = DHT11.humi_int%10+0x30;
             Sender->send(packet1);
 
-           // printf("湿度数据：%d%%\n",DHT11.humi_int);
 			device_dht11.update_event = false;		
 		}
         if(device_adc_pc4.Device_update(&device_adc_pc4) == SUCCESS && device_adc_pc4.update_event){
@@ -229,7 +222,6 @@ void APP_task(void *pvParameters){
             packet1->dataBytes.data[6] = ADC_PC4%10+0x30;
             Sender->send(packet1);
             
-			//printf("土壤湿度：%d%%\n",ADC_PC4);
 			device_adc_pc4.update_event = false;		
 		}
 

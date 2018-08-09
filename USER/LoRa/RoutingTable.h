@@ -3,9 +3,9 @@
 
 #include "LinkedList.h"
 #include <stdint.h>
+#include "LoRa.h"
 
-
-#ifdef ROOTING_MODE
+#ifdef ROUTING_MODE
 
 typedef struct _routMessage {
     uint16_t DestinationAddress;    //Ä¿µÄµØÖ·
@@ -30,6 +30,6 @@ void RoutingTableInit(void);
 void add(uint16_t DestinationAddress,uint8_t hops,uint16_t nextJmpAddress);
 void deleteRoutMessage(uint16_t DestinationAddress);
 uint16_t select(uint16_t DestinationAddress);
-#endif /* ROOTING_MODE */
+#endif /* ROUTING_MODE */
 #endif /* ROUTINGTABLE_H */
 
