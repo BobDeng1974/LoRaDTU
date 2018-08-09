@@ -68,11 +68,10 @@ int main(void)
     SenderInit();
     ReceiverInit();
     create_adc();
-    create_bh1750();
+    //create_bh1750();
     create_dht11();
     //Usart_SendArray(USART2,"helloworld",10);
     printf("系统启动");
-	Usart_SendString(USART2,"LoRa初始化");
 	//创建开始任务
     xTaskCreate((TaskFunction_t )start_task,            //任务函数
                 (const char*    )"start_task",          //任务名称
@@ -109,14 +108,13 @@ void start_task(void *pvParameters)
     
 
 
-    #ifndef ROUTING_MODE
-	//创建app任务
-    xTaskCreate((TaskFunction_t )APP_task,             
-                (const char*    )"app_task",           
-                (uint16_t       )APP_STK_SIZE,        
-                (void*          )NULL,                  
-                (UBaseType_t    )APP_TASK_PRIO,        
-                (TaskHandle_t*  )&APPTask_Handler);
+//	//创建app任务
+//    xTaskCreate((TaskFunction_t )APP_task,             
+//                (const char*    )"app_task",           
+//                (uint16_t       )APP_STK_SIZE,        
+//                (void*          )NULL,                  
+//                (UBaseType_t    )APP_TASK_PRIO,        
+//                (TaskHandle_t*  )&APPTask_Handler);
     
      //创建app1任务
     xTaskCreate((TaskFunction_t )APP1_task,             
@@ -125,7 +123,6 @@ void start_task(void *pvParameters)
                 (void*          )NULL,                  
                 (UBaseType_t    )APP1_TASK_PRIO,        
                 (TaskHandle_t*  )&APP1Task_Handler);
-    #endif /* ROUTING_MODE */
                 
     vTaskDelete(StartTask_Handler); //删除开始任务
     taskEXIT_CRITICAL();            //退出临界区
@@ -148,7 +145,9 @@ void send_task(void *pvParameters)
             packet = node->nodeData;
             if(--packet->time <= 0){
                 ECC->ECCList->deleteByNode(ECC->ECCList,node);
-                printf("正文内容为%s的数据包未接收到确认，正在重新发送\r\n",packet->dataBytes.data);
+                Usart_SendString(DEBUG_USARTx,"正文内容为【");
+                Usart_SendArray(DEBUG_USARTx,packet->dataBytes.data,packet->dataBytes.length);
+                Usart_SendString(DEBUG_USARTx,"】未接收到确认包，正在重新发送\r\n");
                 _LoRaSendData(packet);
             }
         }
@@ -234,7 +233,7 @@ void APP_task(void *pvParameters){
 			device_adc_pc4.update_event = false;		
 		}
 
-        vTaskDelay(1000);
+        vTaskDelay(10000);
     }
 }
 
@@ -280,8 +279,13 @@ void APP1_task(void *pvParameters){
             destroyPacket(packet);
         }
         if(packet!= NULL && packet->dataBytes.length == 7){
-            
-            printf("接收到来自地址为：%2x %2x %2x 的设备发送的数据:%s\r\n",packet->source.Address_H,packet->source.Address_L,packet->source.Channel,packet->dataBytes.data);
+            Usart_SendString(DEBUG_USARTx,"接收到来自地址为：");
+            vTaskDelay(50);
+            printf("%2x %2x %2x 的设备发送的数据【",packet->source.Address_H,packet->source.Address_L,packet->source.Channel);
+             vTaskDelay(50);
+            Usart_SendArray(DEBUG_USARTx,packet->dataBytes.data,packet->dataBytes.length);
+             vTaskDelay(50);
+            Usart_SendString(DEBUG_USARTx,"】\r\n");
             destroyPacket(packet);
         }
         vTaskDelay(1000);

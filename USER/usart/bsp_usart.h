@@ -30,6 +30,7 @@
 #define  DEBUG_USART_IRQHandler         USART1_IRQHandler
 
 
+
 // ´®¿Ú2-USART2
 //#define  DEBUG_USARTx                   USART2
 //#define  DEBUG_USART_CLK                RCC_APB1Periph_USART2

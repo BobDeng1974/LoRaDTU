@@ -14,11 +14,11 @@ LoRaAddress defaultHost;
 
 void LoRaInit(void){
     
-    localhost.Address_H = 0x00;
+    localhost.Address_H = 0x02;
     localhost.Address_L = 0x02;
-    localhost.Channel = 0x15;
-    defaultHost.Address_H = 0x01;
-    defaultHost.Address_L = 0x01;
+    localhost.Channel = 0x02;
+    defaultHost.Address_H = 0x03;
+    defaultHost.Address_L = 0x03;
     defaultHost.Channel = 0x00;
     
     #ifdef ROOTING_MODE
