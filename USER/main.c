@@ -70,7 +70,7 @@ int main(void)
     //create_bh1750();
     create_dht11();
     
-
+    
     
     printf("系统启动");
 	//创建开始任务

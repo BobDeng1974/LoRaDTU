@@ -4,10 +4,11 @@
 
 #define LoRaUSART USART2
 
-#if 0
-#define ROUTING_MODE
-#endif
- 
+
+
+//#define ROUTING_MODE
+
+
 #include "packet.h"
 extern LoRaAddress localhost;
 extern LoRaAddress defaultHost;

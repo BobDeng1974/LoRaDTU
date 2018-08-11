@@ -16,15 +16,21 @@ void LoRaInit(void){
     
     localhost.Address_H = 0x02;
     localhost.Address_L = 0x02;
-    localhost.Channel = 0x02;
+    localhost.Channel = 0x03;
     defaultHost.Address_H = 0x03;
     defaultHost.Address_L = 0x03;
     defaultHost.Channel = 0x00;
+
+    
+    
+    
     
     #ifdef ROUTING_MODE
     RoutingTableInit();
     if(localhost.Address_H ==0x02 && localhost.Address_L == 0x02){
         routing.add(771,1,771);
+    }else if(localhost.Address_H ==0x03 && localhost.Address_L == 0x03){
+        routing.add(514,1,514);
     }
     
     #endif /* ROUTING_MODE */
