@@ -241,6 +241,7 @@ void destroyPacket(DataPacket* packet){
     if(packet != NULL){
         destroyData(packet->dataBytes.data);
         free(packet);
+        packet = NULL;
     }
 }
 
@@ -254,6 +255,7 @@ void destroyPacket(DataPacket* packet){
 void destroyData(uint8_t* data){
     if(data != NULL){
         free(data);
+        data = NULL;
     }
 }
 

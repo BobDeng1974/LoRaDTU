@@ -94,8 +94,7 @@ void _send(void){
                 //发送完成，如果数据长度大于2，数据包移交给ECC
                 ECC->check(packet);
             }else if(packet->dataBytes.length == 1 || packet->dataBytes.length == 2){
-                free(packet->dataBytes.data);
-                free(packet);
+                destroyPacket(packet);
             }
         }
     }

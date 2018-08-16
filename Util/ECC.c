@@ -30,7 +30,7 @@ void check(DataPacket* packet){
     if(ECCList->size >= ECC_MAX_LEN){        
         destroyPacket(ECCList->headRemove(ECCList));
     }
-    packet->time = 1000;
+    packet->time = 500;
     ECCList->tailInsert(ECCList,packet);
 }
 
@@ -77,8 +77,7 @@ _Bool ECCRemove(uint8_t crc){
         pItem = pNode->nodeData;
         if(crc == pItem->crc){
             ECCList->deleteByNode(ECCList,pNode);
-            free(pItem->dataBytes.data);//数据空间由 malloc 申请
-            free(pItem);                //数据包空间也是由 malloc 申请的
+            destroyPacket(pItem);
             return 1;
         }
     }

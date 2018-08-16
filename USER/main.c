@@ -31,7 +31,7 @@ TaskHandle_t recvTask_Handler;
 void recv_task(void *pvParameters);
 
 //任务优先级
-#define send_TASK_PRIO		4
+#define send_TASK_PRIO		5
 //任务堆栈大小	
 #define send_STK_SIZE 		1024  
 //任务句柄
@@ -40,18 +40,42 @@ TaskHandle_t sendTask_Handler;
 void send_task(void *pvParameters);
 
 
-//应用任务
-#define APP_TASK_PRIO		0
-#define APP_STK_SIZE 		128
-TaskHandle_t APPTask_Handler;
-void APP_task(void *pvParameters);
+
 
 
 //应用任务
-#define APP1_TASK_PRIO		0
+#define APP1_TASK_PRIO		4
 #define APP1_STK_SIZE 		1024
 TaskHandle_t APP1Task_Handler;
 void APP1_task(void *pvParameters);
+
+
+
+LoRaAddress WIFIaddress;
+
+
+
+
+
+//应用任务
+#define TEMP_TASK_PRIO		0
+#define TEMP_STK_SIZE 		128
+TaskHandle_t TEMPTask_Handler;
+void TEMP_task(void *pvParameters);
+
+
+//应用任务
+#define HUMI_TASK_PRIO		0
+#define HUMI_STK_SIZE 		128
+TaskHandle_t HUMITask_Handler;
+void HUMI_task(void *pvParameters);
+
+
+//应用任务
+#define EUMI_TASK_PRIO		0
+#define EUMI_STK_SIZE 		128
+TaskHandle_t EUMITask_Handler;
+void EUMI_task(void *pvParameters);
 
 
 
@@ -70,7 +94,9 @@ int main(void)
     //create_bh1750();
     create_dht11();
     
-    
+    WIFIaddress.Address_H = 0x03;
+    WIFIaddress.Address_L = 0x03;
+    WIFIaddress.Channel = 0x03;
     
     printf("系统启动");
 	//创建开始任务
@@ -91,7 +117,7 @@ int main(void)
 void start_task(void *pvParameters)
 {
     taskENTER_CRITICAL();           //进入临界区
-    //创建TASK1任务
+    //创建发送任务
     xTaskCreate((TaskFunction_t )send_task,             
                 (const char*    )"send_task",           
                 (uint16_t       )send_STK_SIZE,        
@@ -99,7 +125,7 @@ void start_task(void *pvParameters)
                 (UBaseType_t    )send_TASK_PRIO,        
                 (TaskHandle_t*  )&sendTask_Handler);   
 
-    //创建TASK2任务
+    //创建接收任务
     xTaskCreate((TaskFunction_t )recv_task,             
                 (const char*    )"recv_task",           
                 (uint16_t       )recv_STK_SIZE,        
@@ -107,15 +133,29 @@ void start_task(void *pvParameters)
                 (UBaseType_t    )recv_TASK_PRIO,        
                 (TaskHandle_t*  )&recvTask_Handler);               
     
-
-
-	//创建app任务
-    xTaskCreate((TaskFunction_t )APP_task,             
-                (const char*    )"app_task",           
-                (uint16_t       )APP_STK_SIZE,        
+    //创建温度发送任务
+    xTaskCreate((TaskFunction_t )TEMP_task,             
+                (const char*    )"TEMP_task",           
+                (uint16_t       )TEMP_STK_SIZE,        
                 (void*          )NULL,                  
-                (UBaseType_t    )APP_TASK_PRIO,        
-                (TaskHandle_t*  )&APPTask_Handler);
+                (UBaseType_t    )TEMP_TASK_PRIO,        
+                (TaskHandle_t*  )&TEMPTask_Handler); 
+    
+    //创建湿度发送任务
+    xTaskCreate((TaskFunction_t )HUMI_task,             
+                (const char*    )"HUMI_task",           
+                (uint16_t       )HUMI_STK_SIZE,        
+                (void*          )NULL,                  
+                (UBaseType_t    )HUMI_TASK_PRIO,        
+                (TaskHandle_t*  )&HUMITask_Handler);     
+                
+    //创建土壤湿度发送任务
+    xTaskCreate((TaskFunction_t )EUMI_task,             
+                (const char*    )"EUMI_task",           
+                (uint16_t       )EUMI_STK_SIZE,        
+                (void*          )NULL,                  
+                (UBaseType_t    )EUMI_TASK_PRIO,        
+                (TaskHandle_t*  )&EUMITask_Handler);                
     
      //创建app1任务
     xTaskCreate((TaskFunction_t )APP1_task,             
@@ -149,7 +189,7 @@ void send_task(void *pvParameters)
                 _LoRaSendData(packet);
             }
         }
-        vTaskDelay(10);
+        vTaskDelay(20);
 	}
 }
 
@@ -167,67 +207,69 @@ void recv_task(void *pvParameters)
 	}
 }
 
-void APP_task(void *pvParameters){
 
-    
-    
-    LoRaAddress WIFIaddress;
-    WIFIaddress.Address_H = 0x03;
-    WIFIaddress.Address_L = 0x03;
-    WIFIaddress.Channel = 0x03;
-      
-    
-    
+
+
+
+void TEMP_task(void *pvParameters){
     while(1){
-
+        device_dht11.Device_update(&device_dht11);
         
-        if(device_dht11.Device_update(&device_dht11) == SUCCESS && device_dht11.update_event){
-
-            
-            DataPacket* packet = malloc(sizeof(DataPacket));
-            packet->dataBytes.length = 7;
-            packet->dataBytes.data = malloc(sizeof(uint8_t)*7);
-            packet->source = localhost;
-            packet->destination = WIFIaddress;
-            packet->count = 0x10;
-            strcpy((char*)packet->dataBytes.data,"temp:");
-            packet->dataBytes.data[5] = DHT11.temp_int/10+0x30;
-            packet->dataBytes.data[6] = DHT11.temp_int%10+0x30;
-            Sender->send(packet);
-
-            DataPacket* packet1 = malloc(sizeof(DataPacket));
-            packet1->dataBytes.length = 7;
-            packet1->dataBytes.data = malloc(sizeof(uint8_t)*7);
-            packet1->source = localhost;
-            packet1->destination = WIFIaddress;
-            packet1->count = 0x10;
-            strcpy((char*)packet1->dataBytes.data,"humi:");
-            packet1->dataBytes.data[5] = DHT11.humi_int/10+0x30;
-            packet1->dataBytes.data[6] = DHT11.humi_int%10+0x30;
-            Sender->send(packet1);
-
-			device_dht11.update_event = false;		
-		}
-        if(device_adc_pc4.Device_update(&device_adc_pc4) == SUCCESS && device_adc_pc4.update_event){
-
-            
-            DataPacket* packet1 = malloc(sizeof(DataPacket));
-            packet1->dataBytes.length = 7;
-            packet1->dataBytes.data = malloc(sizeof(uint8_t)*7);
-            packet1->source = localhost;
-            packet1->destination = WIFIaddress;
-            packet1->count = 0x10;
-            strcpy((char*)packet1->dataBytes.data,"Eumi:");
-            packet1->dataBytes.data[5] = ADC_PC4/10+0x30;
-            packet1->dataBytes.data[6] = ADC_PC4%10+0x30;
-            Sender->send(packet1);
-            
-			device_adc_pc4.update_event = false;		
-		}
-
+        DataPacket* packet = malloc(sizeof(DataPacket));
+        packet->dataBytes.length = 7;
+        packet->dataBytes.data = malloc(sizeof(uint8_t)*7);
+        packet->source = localhost;
+        packet->destination = WIFIaddress;
+        packet->count = 0x10;
+        strcpy((char*)packet->dataBytes.data,"temp:");
+        packet->dataBytes.data[5] = DHT11.temp_int/10+0x30;
+        packet->dataBytes.data[6] = DHT11.temp_int%10+0x30;
+        Sender->send(packet);
+        
         vTaskDelay(10000);
     }
 }
+
+
+void HUMI_task(void *pvParameters){
+    while(1){
+        device_dht11.Device_update(&device_dht11);
+        
+        DataPacket* packet1 = malloc(sizeof(DataPacket));
+        packet1->dataBytes.length = 7;
+        packet1->dataBytes.data = malloc(sizeof(uint8_t)*7);
+        packet1->source = localhost;
+        packet1->destination = WIFIaddress;
+        packet1->count = 0x10;
+        strcpy((char*)packet1->dataBytes.data,"humi:");
+        packet1->dataBytes.data[5] = DHT11.humi_int/10+0x30;
+        packet1->dataBytes.data[6] = DHT11.humi_int%10+0x30;
+        Sender->send(packet1);
+        
+        vTaskDelay(10000);
+    }
+}
+
+void EUMI_task(void *pvParameters){
+    while(1){
+        device_adc_pc4.Device_update(&device_adc_pc4);
+        
+        DataPacket* packet2 = malloc(sizeof(DataPacket));
+        packet2->dataBytes.length = 7;
+        packet2->dataBytes.data = malloc(sizeof(uint8_t)*7);
+        packet2->source = localhost;
+        packet2->destination = WIFIaddress;
+        packet2->count = 0x10;
+        strcpy((char*)packet2->dataBytes.data,"eumi:");
+        packet2->dataBytes.data[5] = ADC_PC4/10+0x30;
+        packet2->dataBytes.data[6] = ADC_PC4%10+0x30;
+        Sender->send(packet2);
+        
+        vTaskDelay(10000);
+    }
+    
+}
+
 
 
 

@@ -6,7 +6,7 @@
 
 
 
-//#define ROUTING_MODE
+#define ROUTING_MODE
 
 
 #include "packet.h"
