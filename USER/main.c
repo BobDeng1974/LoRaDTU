@@ -31,7 +31,7 @@ TaskHandle_t recvTask_Handler;
 void recv_task(void *pvParameters);
 
 //任务优先级
-#define send_TASK_PRIO		5
+#define send_TASK_PRIO		10
 //任务堆栈大小	
 #define send_STK_SIZE 		1024  
 //任务句柄
@@ -76,6 +76,17 @@ void HUMI_task(void *pvParameters);
 #define EUMI_STK_SIZE 		128
 TaskHandle_t EUMITask_Handler;
 void EUMI_task(void *pvParameters);
+
+
+
+//应用任务
+#define ECC_TASK_PRIO		5
+#define ECC_STK_SIZE 		512
+TaskHandle_t ECCTask_Handler;
+void ECC_task(void *pvParameters);
+
+
+
 
 
 
@@ -164,6 +175,14 @@ void start_task(void *pvParameters)
                 (void*          )NULL,                  
                 (UBaseType_t    )APP1_TASK_PRIO,        
                 (TaskHandle_t*  )&APP1Task_Handler);
+    
+     //创建ECC任务
+    xTaskCreate((TaskFunction_t )ECC_task,             
+                (const char*    )"ECC_task",           
+                (uint16_t       )ECC_STK_SIZE,        
+                (void*          )NULL,                  
+                (UBaseType_t    )ECC_TASK_PRIO,        
+                (TaskHandle_t*  )&ECCTask_Handler);                
                 
     vTaskDelete(StartTask_Handler); //删除开始任务
     taskEXIT_CRITICAL();            //退出临界区
@@ -174,22 +193,12 @@ void start_task(void *pvParameters)
 //send任务函数
 void send_task(void *pvParameters)
 {
-    DataPacket* packet = NULL;
-    Node* node = NULL;
+
 	while(1)
 	{
 		_send();
-        //每10ms遍历一次ECC
-        ECC->ECCList->iterator.reset(ECC->ECCList);
-        while(ECC->ECCList->iterator.hasNext(ECC->ECCList)){
-            node = ECC->ECCList->iterator.next(ECC->ECCList);
-            packet = node->nodeData;
-            if(--packet->time <= 0){
-                ECC->ECCList->deleteByNode(ECC->ECCList,node);
-                _LoRaSendData(packet);
-            }
-        }
-        vTaskDelay(20);
+        
+        vTaskDelay(10);
 	}
 }
 
@@ -281,47 +290,47 @@ void APP1_task(void *pvParameters){
     while(1){
         
         DataPacket* packet = receiver->receive();
-        if(packet!= NULL && packet->dataBytes.length == 4){
-            DataPacket* packet1 = malloc(sizeof(DataPacket));
-            packet1->dataBytes.length = 7;
-            packet1->dataBytes.data = malloc(sizeof(uint8_t)*7);
-            packet1->source = localhost;
-            packet1->destination = packet->source;
-            packet->count = 0x10;
-            device_adc_pc4.Device_update(&device_adc_pc4);
-            device_dht11.Device_update(&device_dht11);
-            if(strstr((const char*)packet->dataBytes.data,"temp")){
-               
-                strcpy((char*)packet1->dataBytes.data,"temp:");
-                packet1->dataBytes.data[5] = DHT11.temp_int/10+0x30;
-                packet1->dataBytes.data[6] = DHT11.temp_int%10+0x30;
-            }else if(strstr((const char*)packet->dataBytes.data,"humi")){
-                strcpy((char*)packet1->dataBytes.data,"humi:");
-                packet1->dataBytes.data[5] = DHT11.humi_int/10+0x30;
-                packet1->dataBytes.data[6] = DHT11.humi_int%10+0x30;
-            }else if(strstr((const char*)packet->dataBytes.data,"eumi")||
-                     strstr((const char*)packet->dataBytes.data,"Eumi")){
-                strcpy((char*)packet1->dataBytes.data,"Eumi:");
-                packet1->dataBytes.data[5] = ADC_PC4/10+0x30;
-                packet1->dataBytes.data[6] = ADC_PC4%10+0x30;
-            }else{
-                strcpy((char*)packet1->dataBytes.data,"error!!");
+        
+        if(packet != NULL){
+            if(packet->dataBytes.length == 4){
+                DataPacket* packet1 = malloc(sizeof(DataPacket));
+                packet1->dataBytes.length = 7;
+                packet1->dataBytes.data = malloc(sizeof(uint8_t)*7);
+                packet1->source = localhost;
+                packet1->destination = packet->source;
+                packet->count = 0x10;
+                device_adc_pc4.Device_update(&device_adc_pc4);
+                device_dht11.Device_update(&device_dht11);
+                if(strstr((const char*)packet->dataBytes.data,"temp")){
+                   
+                    strcpy((char*)packet1->dataBytes.data,"temp:");
+                    packet1->dataBytes.data[5] = DHT11.temp_int/10+0x30;
+                    packet1->dataBytes.data[6] = DHT11.temp_int%10+0x30;
+                }else if(strstr((const char*)packet->dataBytes.data,"humi")){
+                    strcpy((char*)packet1->dataBytes.data,"humi:");
+                    packet1->dataBytes.data[5] = DHT11.humi_int/10+0x30;
+                    packet1->dataBytes.data[6] = DHT11.humi_int%10+0x30;
+                }else if(strstr((const char*)packet->dataBytes.data,"eumi")||
+                         strstr((const char*)packet->dataBytes.data,"Eumi")){
+                    strcpy((char*)packet1->dataBytes.data,"Eumi:");
+                    packet1->dataBytes.data[5] = ADC_PC4/10+0x30;
+                    packet1->dataBytes.data[6] = ADC_PC4%10+0x30;
+                }else{
+                    strcpy((char*)packet1->dataBytes.data,"error!!");
+                }
+                Sender->send(packet1);
+            }else if(packet->dataBytes.length == 7){
+                Usart_SendString(DEBUG_USARTx,"接收到来自地址为：");
+                vTaskDelay(50);
+                printf("%2x %2x %2x 的设备发送的数据【",packet->source.Address_H,packet->source.Address_L,packet->source.Channel);
+                 vTaskDelay(50);
+                Usart_SendArray(DEBUG_USARTx,packet->dataBytes.data,packet->dataBytes.length);
+                 vTaskDelay(50);
+                Usart_SendString(DEBUG_USARTx,"】\r\n");
             }
-            Sender->send(packet1);
-            
-            
             destroyPacket(packet);
         }
-        if(packet!= NULL && packet->dataBytes.length == 7){
-            Usart_SendString(DEBUG_USARTx,"接收到来自地址为：");
-            vTaskDelay(50);
-            printf("%2x %2x %2x 的设备发送的数据【",packet->source.Address_H,packet->source.Address_L,packet->source.Channel);
-             vTaskDelay(50);
-            Usart_SendArray(DEBUG_USARTx,packet->dataBytes.data,packet->dataBytes.length);
-             vTaskDelay(50);
-            Usart_SendString(DEBUG_USARTx,"】\r\n");
-            destroyPacket(packet);
-        }
+        
         vTaskDelay(1000);
     }
 }
@@ -332,7 +341,27 @@ void APP1_task(void *pvParameters){
 
 
 
+void ECC_task(void *pvParameters){
+    DataPacket* packet = NULL;
+    Node* node = NULL;
+	while(1)
+	{
+		
+        //每50ms遍历一次ECC
+        ECC->ECCList->iterator.reset(ECC->ECCList);
+        while(ECC->ECCList->iterator.hasNext(ECC->ECCList)){
+            node = ECC->ECCList->iterator.next(ECC->ECCList);
+            packet = node->nodeData;
+            if(--packet->time <= 0){
+                ECC->ECCList->deleteByNode(ECC->ECCList,node);
+                _LoRaSendData(packet);
+            }
+        }
+        vTaskDelay(50);
+	}
 
+
+}
 
 
 

@@ -30,7 +30,7 @@ void check(DataPacket* packet){
     if(ECCList->size >= ECC_MAX_LEN){        
         destroyPacket(ECCList->headRemove(ECCList));
     }
-    packet->time = 500;
+    packet->time = 100;
     ECCList->tailInsert(ECCList,packet);
 }
 

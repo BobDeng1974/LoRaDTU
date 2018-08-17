@@ -69,6 +69,10 @@ void SenderInit(void){
  *  
  */ 
 void send(DataPacket* packet){
+    
+
+    
+    
     if(sendList->size >= MAX_LEN){
         destroyPacket(sendList->headRemove(sendList));
     }
@@ -86,7 +90,7 @@ void _send(void){
     while(sendList->size != 0){
         DataPacket* packet = sendList->headRemove(sendList);
         if(LoRaSendData(packet)){
-            #if DEBUG
+            #if 0
             printf("LORA 发送数据包 crc为 %x\r\n",packet->crc);
             printf("LORA 发送数据包 len为 %x\r\n",packet->dataBytes.length);
             #endif
