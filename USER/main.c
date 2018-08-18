@@ -336,11 +336,6 @@ void APP1_task(void *pvParameters){
 }
 
 
-
-
-
-
-
 void ECC_task(void *pvParameters){
     DataPacket* packet = NULL;
     Node* node = NULL;
